@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SNAKE 2026 — Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --lcd:        #9BBC0F;   /* LCD Green */
+    --lcd-light:  #8BAC0F;   /* Light Green */
+    --lcd-dark:   #306230;   /* Dark Green */
+    --lcd-black:  #0F380F;   /* "Black" of the palette, screen base */
+    --void:       #060a06;   /* true backdrop, outside the device */
+    --bezel-1:    #1c1f1b;
+    --bezel-2:    #2c302a;
+    --font-display:'Press Start 2P', monospace;
+    --font-body:'VT323', monospace;
+    --radius-classic: 1px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at 50% -10%, #0d160d 0%, var(--void) 55%, #020402 100%);
+    color:var(--lcd);
+    font-family:var(--font-body);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:36px 16px 56px;
+  }
+  button{font-family:inherit;cursor:pointer;}
+  .page{width:100%;max-width:1180px;}
+
+  /* ---------- HERO ---------- */
+  .hero{text-align:center;margin-bottom:34px;}
+  .hero h1{
+    font-family:var(--font-display);
+    font-size:clamp(22px,5vw,40px);
+    letter-spacing:4px;
+    color:var(--lcd);
+    text-shadow:0 0 14px rgba(155,188,15,.45);
+    margin:0 0 6px;
+  }
+  .hero h1 span{display:block;font-size:.4em;color:var(--lcd-dark);letter-spacing:8px;margin-top:8px;}
+  .hero p{
+    font-size:20px;color:var(--lcd-light);margin:10px auto 0;max-width:420px;line-height:1.4;
+  }
+
+  /* ---------- STAGE LAYOUT ---------- */
+  .stage{
+    display:grid;
+    grid-template-columns:230px minmax(300px,380px) 230px;
+    gap:22px;
+    align-items:start;
+    justify-content:center;
+  }
+  @media (max-width:980px){
+    .stage{grid-template-columns:1fr;}
+    .panel{display:none;}
+  }
+
+  /* side info / live-control panels */
+  .panel{
+    background:linear-gradient(180deg,#0c130c,#070d07);
+    border:1px solid var(--lcd-dark);
+    border-radius:14px;
+    padding:16px;
+  }
+  .panel h3{
+    font-family:var(--font-display);font-size:12px;letter-spacing:1px;
+    color:var(--lcd);margin:0 0 14px;
+  }
+  .panel-row{
+    display:flex;align-items:flex-start;gap:10px;
+    padding:10px 4px;border-bottom:1px dashed rgba(48,98,48,.5);
+  }
+  .panel-row:last-child{border-bottom:none;}
+  .panel-row button.dot{
+    width:16px;height:16px;border-radius:3px;flex:0 0 auto;margin-top:3px;
+    border:2px solid var(--lcd-dark);background:transparent;
+  }
+  .panel-row button.dot.is-active{background:var(--lcd);border-color:var(--lcd);}
+  .panel-row .ptext{font-size:17px;color:var(--lcd-light);line-height:1.25;}
+  .panel-row .ptext b{display:block;color:var(--lcd);font-size:18px;font-family:var(--font-body);}
+  .skin-row{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer;border-bottom:1px dashed rgba(48,98,48,.5);}
+  .skin-row:last-child{border-bottom:none;}
+  .swatch{width:26px;height:26px;border-radius:4px;border:2px solid var(--lcd-dark);flex:0 0 auto;}
+  .swatch.classic{background:var(--lcd);}
+  .swatch.neon{background:#39ff14;box-shadow:0 0 8px #39ff14aa;}
+  .swatch.gold{background:linear-gradient(135deg,#ffd76a,#caa23a);}
+  .swatch.retro{background:#e8f5d0;}
+  .skin-row.is-active{outline:1px solid var(--lcd);border-radius:6px;background:rgba(155,188,15,.08);}
+  .skin-row span{font-size:17px;color:var(--lcd-light);}
+
+  /* ---------- DEVICE ---------- */
+  .device-wrap{display:flex;justify-content:center;}
+  .phone{
+    width:clamp(280px,90vw,360px);
+    aspect-ratio:9/19.5;
+    background:linear-gradient(155deg,var(--bezel-2),var(--bezel-1) 60%);
+    border-radius:46px;
+    padding:14px 12px;
+    box-shadow:
+      0 30px 60px -20px rgba(0,0,0,.8),
+      0 0 0 1px rgba(255,255,255,.04) inset,
+      0 2px 0 rgba(255,255,255,.06) inset;
+    display:flex;flex-direction:column;
+    position:relative;
+  }
+  .phone-top{display:flex;justify-content:center;padding:4px 0 8px;}
+  .phone-top .cam-dot{width:6px;height:6px;border-radius:50%;background:#000;box-shadow:0 0 0 2px #3a3d37 inset;}
+  .screen-bezel{
+    flex:1;background:#000;border-radius:26px;padding:3px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.03) inset, 0 10px 18px rgba(0,0,0,.55) inset;
+  }
+  .lcd{
+    position:relative;height:100%;width:100%;overflow:hidden;border-radius:23px;
+    background:
+      radial-gradient(120% 70% at 50% -10%, #173017 0%, var(--lcd-black) 55%, #081f08 100%);
+  }
+  .grid-overlay{
+    position:absolute;inset:0;pointer-events:none;z-index:5;
+    background-image:radial-gradient(rgba(155,188,15,.07) 1px, transparent 1.3px);
+    background-size:6px 6px;
+    mix-blend-mode:screen;
+  }
+  .lcd::after{ /* scanlines */
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:6;
+    background:repeating-linear-gradient(to bottom, rgba(0,0,0,.10) 0 1px, transparent 1px 3px);
+    opacity:.5;
+  }
+  @media (prefers-reduced-motion:reduce){ .pulse,.blink{animation:none !important;} }
+
+  .phone-bottom{display:flex;justify-content:center;padding-top:9px;}
+  .phone-bottom .brand{font-family:var(--font-display);font-size:9px;letter-spacing:3px;color:#5a6052;}
+
+  /* ---------- SCREENS ---------- */
+  .screen{
+    position:absolute;inset:0;display:none;flex-direction:column;
+    padding:16px 14px 14px;color:var(--lcd);
+  }
+  .screen.active{display:flex;}
+  .screen h2{
+    font-family:var(--font-display);font-size:15px;letter-spacing:1px;margin:0 0 10px;color:var(--lcd);
+  }
+  .label{font-size:12px;letter-spacing:1px;color:var(--lcd-dark);display:block;font-family:var(--font-display);}
+  .value{font-size:19px;font-family:var(--font-display);color:var(--lcd);}
+
+  /* buttons shared */
+  .menu-item{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:12px 10px;margin-bottom:9px;
+    background:transparent;border:2px solid var(--lcd-dark);border-radius:6px;
+    color:var(--lcd-light);font-family:var(--font-body);font-size:19px;letter-spacing:1px;
+    transition:background .15s,color .15s,border-color .15s,transform .05s;
+  }
+  .menu-item:active{transform:scale(.97);}
+  .menu-item.primary{background:var(--lcd);border-color:var(--lcd);color:var(--lcd-black);font-weight:700;}
+  .menu-item.ghost{border-color:transparent;color:var(--lcd-dark);}
+  .menu-item:focus-visible{outline:2px solid var(--lcd);outline-offset:2px;}
+  .menu-item:not(.primary):hover{border-color:var(--lcd);color:var(--lcd);}
+
+  /* HOME */
+  #screen-home{justify-content:flex-start;}
+  .home-logo{text-align:center;padding:10px 0 14px;}
+  .mini-snake{
+    display:grid;grid-template-columns:repeat(7,7px);grid-template-rows:repeat(4,7px);
+    gap:2px;justify-content:center;margin:0 auto 10px;
+  }
+  .mini-snake span{background:transparent;border-radius:1px;}
+  .mini-snake span.on{background:var(--lcd);box-shadow:0 0 4px rgba(155,188,15,.6);}
+  .logo-text{font-family:var(--font-display);font-size:26px;margin:0;letter-spacing:2px;color:var(--lcd);text-shadow:0 0 12px rgba(155,188,15,.5);}
+  .logo-text span{display:block;font-size:.42em;color:var(--lcd-dark);letter-spacing:6px;margin-top:6px;}
+  .menu{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .menu-item .dailydot{width:6px;height:6px;border-radius:50%;background:var(--lcd-light);margin-left:6px;}
+  .home-toolbar{display:flex;gap:8px;justify-content:center;padding-top:6px;}
+  .toolbar-btn{
+    width:40px;height:32px;border-radius:6px;border:2px solid var(--lcd-dark);background:transparent;
+    color:var(--lcd-dark);font-size:13px;font-family:var(--font-display);
+  }
+  .toolbar-btn.is-on{border-color:var(--lcd);color:var(--lcd);}
+
+  /* GAMEPLAY */
+  #screen-game{padding:14px 12px;}
+  .game-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .stat{display:flex;flex-direction:column;}
+  .icon-btn{
+    width:34px;height:34px;border-radius:7px;border:2px solid var(--lcd-dark);background:transparent;
+    color:var(--lcd);font-size:13px;display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn:focus-visible{outline:2px solid var(--lcd);}
+  .board-wrap{flex:1;display:flex;align-items:center;}
+  .board{
+    position:relative;width:100%;aspect-ratio:13/19;
+    background:rgba(155,188,15,.05);
+    border:1px solid var(--lcd-dark);border-radius:6px;
+    touch-action:none;overflow:hidden;
+  }
+  .cell{position:absolute;}
+  .snake-seg{border:1.5px solid var(--lcd-black);}
+  [data-skin="classic"] .snake-seg{background:var(--lcd);border-radius:var(--radius-classic);}
+  [data-skin="neon"] .snake-seg{background:#39ff14;border-radius:3px;box-shadow:0 0 6px #39ff14aa;}
+  [data-skin="gold"] .snake-seg{background:linear-gradient(135deg,#ffe08a,#c8992f);border-radius:3px;box-shadow:0 0 5px rgba(212,175,55,.5);}
+  [data-skin="retro"] .snake-seg{background:#eef7da;border-radius:0;}
+  .snake-seg.head{filter:brightness(1.18);}
+  .food{background:var(--lcd-light);border:1.5px solid var(--lcd-black);border-radius:3px;}
+  .food.pulse{animation:foodPulse 1s ease-in-out infinite;}
+  @keyframes foodPulse{0%,100%{opacity:.55;transform:scale(.78);}50%{opacity:1;transform:scale(1);}}
+  .obstacle{
+    background:repeating-linear-gradient(45deg,var(--lcd-dark) 0 3px, rgba(48,98,48,.5) 3px 6px);
+    border:1.5px solid var(--lcd-black);border-radius:1px;
+  }
+  .pause-overlay{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    background:rgba(8,18,8,.78);
+  }
+  .pause-overlay span{font-family:var(--font-display);font-size:16px;color:var(--lcd);}
+  .pause-overlay small{font-size:15px;color:var(--lcd-dark);}
+  .dpad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px;}
+  .dpad-btn{
+    height:42px;border-radius:8px;border:2px solid var(--lcd-dark);background:transparent;
+    color:var(--lcd);font-size:17px;display:flex;align-items:center;justify-content:center;
+  }
+  .dpad-btn:active{background:rgba(155,188,15,.12);}
+  .dpad-btn:focus-visible{outline:2px solid var(--lcd);}
+
+  /* GAME OVER */
+  #screen-gameover{align-items:center;text-align:center;justify-content:flex-start;padding-top:26px;}
+  .gameover-icon{font-family:var(--font-display);font-size:22px;letter-spacing:10px;margin-bottom:8px;color:var(--lcd);}
+  #screen-gameover .title{font-family:var(--font-display);font-size:20px;margin:0 0 14px;text-shadow:0 0 10px rgba(155,188,15,.45);}
+  .go-badge{
+    font-family:var(--font-display);font-size:10px;letter-spacing:1px;color:var(--lcd-black);
+    background:var(--lcd);padding:6px 10px;border-radius:20px;margin-bottom:14px;
+  }
+  .go-score,.go-best{margin-bottom:10px;}
+  .go-score .big{display:block;font-family:var(--font-display);font-size:28px;margin-top:4px;}
+  .go-best .mid{display:block;font-family:var(--font-display);font-size:18px;margin-top:4px;color:var(--lcd-light);}
+  .go-actions{width:100%;margin-top:18px;}
+
+  /* LEADERBOARD */
+  .tabs{display:flex;gap:8px;margin-bottom:10px;}
+  .tab{flex:1;padding:8px 0;border-radius:6px;border:2px solid var(--lcd-dark);background:transparent;color:var(--lcd-dark);font-size:16px;letter-spacing:1px;}
+  .tab.active{background:var(--lcd);border-color:var(--lcd);color:var(--lcd-black);font-weight:700;}
+  .lb-list{flex:1;overflow:hidden auto;margin-bottom:10px;}
+  .lb-row{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px dashed rgba(48,98,48,.5);font-size:17px;}
+  .lb-row .rank{width:22px;color:var(--lcd-dark);font-family:var(--font-display);font-size:11px;}
+  .lb-row .name{flex:1;color:var(--lcd-light);}
+  .lb-row .score{font-family:var(--font-display);font-size:13px;}
+  .lb-row.me{background:rgba(155,188,15,.1);border-radius:6px;border-bottom:none;}
+  .lb-row.me .name{color:var(--lcd);}
+
+  /* ACHIEVEMENTS */
+  .ach-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .ach-header span{font-size:14px;color:var(--lcd-dark);}
+  .ach-list{flex:1;overflow:hidden auto;margin-bottom:8px;}
+  .ach-row{padding:9px 4px;border-bottom:1px dashed rgba(48,98,48,.5);}
+  .ach-top{display:flex;justify-content:space-between;align-items:center;}
+  .ach-name{display:flex;align-items:center;gap:8px;font-size:18px;color:var(--lcd-light);}
+  .ach-icon{width:18px;height:18px;border:2px solid var(--lcd-dark);border-radius:4px;flex:0 0 auto;}
+  .ach-row.unlocked .ach-icon{background:var(--lcd);border-color:var(--lcd);}
+  .ach-row.unlocked .ach-name{color:var(--lcd);}
+  .ach-progress-text{font-size:13px;color:var(--lcd-dark);font-family:var(--font-display);}
+  .ach-desc{font-size:14px;color:var(--lcd-dark);margin:2px 0 6px 26px;}
+  .ach-bar{height:4px;border-radius:2px;background:rgba(155,188,15,.12);margin-left:26px;overflow:hidden;}
+  .ach-bar i{display:block;height:100%;background:var(--lcd);}
+
+  /* MODES / SETUP */
+  .modes-tabs{display:flex;gap:8px;margin-bottom:12px;}
+  .modes-panel{flex:1;overflow:hidden auto;}
+  .setup-group{margin-bottom:14px;}
+  .setup-group h4{font-size:13px;letter-spacing:1px;color:var(--lcd-dark);margin:0 0 8px;font-family:var(--font-display);}
+  .seg{display:flex;border:2px solid var(--lcd-dark);border-radius:6px;overflow:hidden;}
+  .seg button{flex:1;padding:8px 0;background:transparent;border:none;color:var(--lcd-dark);font-size:16px;}
+  .seg button.active{background:var(--lcd);color:var(--lcd-black);font-weight:700;}
+  .switch-row{display:flex;align-items:center;justify-content:space-between;padding:8px 2px;}
+  .switch-row span{font-size:17px;color:var(--lcd-light);}
+  .switch{width:42px;height:22px;border-radius:12px;border:2px solid var(--lcd-dark);position:relative;background:transparent;flex:0 0 auto;}
+  .switch i{position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;background:var(--lcd-dark);transition:transform .15s;}
+  .switch.on{border-color:var(--lcd);}
+  .switch.on i{background:var(--lcd);transform:translateX(20px);}
+  .skin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .skin-card{border:2px solid var(--lcd-dark);border-radius:8px;padding:10px;text-align:center;}
+  .skin-card.is-active{border-color:var(--lcd);background:rgba(155,188,15,.08);}
+  .skin-card .swatch{margin:0 auto 6px;width:30px;height:30px;}
+  .skin-card span{font-size:14px;color:var(--lcd-light);}
+
+  /* TOAST */
+  .toast{
+    position:absolute;left:50%;top:14px;transform:translate(-50%,-130%);
+    background:var(--lcd);color:var(--lcd-black);font-family:var(--font-display);
+    font-size:11px;padding:8px 12px;border-radius:6px;white-space:nowrap;z-index:20;
+    transition:transform .25s ease;
+  }
+  .toast.show{transform:translate(-50%,0);}
+
+  /* ---------- FOOTER ---------- */
+  .foot{margin-top:42px;}
+  .badges{display:flex;flex-wrap:wrap;justify-content:center;gap:14px 26px;margin-bottom:46px;}
+  .badge{display:flex;flex-direction:column;align-items:center;gap:6px;width:84px;text-align:center;}
+  .badge .dot{width:34px;height:34px;border:2px solid var(--lcd-dark);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--lcd);font-family:var(--font-display);font-size:12px;}
+  .badge span{font-size:13px;letter-spacing:.5px;color:var(--lcd-dark);}
+
+  .mockup-title{text-align:center;font-family:var(--font-display);font-size:13px;letter-spacing:2px;color:var(--lcd-dark);margin-bottom:18px;}
+  .mockup-row{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;}
+  .mini-phone{
+    width:128px;aspect-ratio:9/19.5;background:linear-gradient(155deg,var(--bezel-2),var(--bezel-1) 60%);
+    border-radius:20px;padding:6px;box-shadow:0 14px 28px -12px rgba(0,0,0,.7);
+  }
+  .mini-screen{
+    height:100%;border-radius:14px;background:radial-gradient(120% 70% at 50% -10%,#173017 0%, var(--lcd-black) 60%);
+    position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px;
+  }
+  .mini-screen .ml{font-family:var(--font-display);font-size:8px;color:var(--lcd);text-align:center;}
+  .mini-figure{display:grid;grid-template-columns:repeat(6,5px);grid-template-rows:repeat(4,5px);gap:1.5px;}
+  .mini-figure span{background:transparent;}
+  .mini-figure span.on{background:var(--lcd);}
+  .mockup-cap{text-align:center;font-size:13px;color:var(--lcd-dark);margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <h1>SNAKE<span>2026</span></h1>
+    <p>The classic legend, reimagined. Same dot‑matrix soul Nokia gave it in 1998 — premium, fluid, and built for one thumb.</p>
+  </header>
+
+  <main class="stage">
+
+    <!-- LEFT: live Game Modes panel -->
+    <aside class="panel" id="panel-modes">
+      <h3>GAME MODES</h3>
+      <div class="panel-row">
+        <button class="dot" data-set-mode="classic"></button>
+        <div class="ptext"><b>Classic Mode</b>Original Nokia experience — instant, snapped movement.</div>
+      </div>
+      <div class="panel-row">
+        <button class="dot" data-set-mode="modern"></button>
+        <div class="ptext"><b>Modern Mode</b>Smooth, interpolated animation between cells.</div>
+      </div>
+      <div class="panel-row">
+        <button class="dot" data-toggle="infinite"></button>
+        <div class="ptext"><b>Infinite Mode</b>No walls. Edges wrap — just survive.</div>
+      </div>
+      <div class="panel-row">
+        <button class="dot" data-toggle="obstacles"></button>
+        <div class="ptext"><b>Obstacles Mode</b>Static blocks appear on the board. Avoid them.</div>
+      </div>
+    </aside>
+
+    <!-- CENTER: the device -->
+    <div class="device-wrap">
+      <div class="phone">
+        <div class="phone-top"><span class="cam-dot"></span></div>
+        <div class="screen-bezel">
+          <div class="lcd" id="lcd" data-skin="classic">
+            <div class="grid-overlay"></div>
+            <div class="toast" id="toast"></div>
+
+            <!-- 1. HOME -->
+            <section class="screen active" id="screen-home">
+              <div class="home-logo">
+                <div class="mini-snake" id="mini-snake-home"></div>
+                <h2 class="logo-text">SNAKE<span>2026</span></h2>
+              </div>
+              <nav class="menu">
+                <button class="menu-item primary" data-action="play">▶ PLAY</button>
+                <button class="menu-item" data-action="modes">MODES</button>
+                <button class="menu-item" data-action="daily">DAILY CHALLENGE <span class="dailydot" id="daily-dot"></span></button>
+                <button class="menu-item" data-action="achievements">ACHIEVEMENTS</button>
+                <button class="menu-item" data-action="leaderboard">LEADERBOARD</button>
+                <button class="menu-item" data-action="modes">OPTIONS</button>
+              </nav>
+              <div class="home-toolbar">
+                <button class="toolbar-btn" id="btn-sound" aria-label="Toggle sound">SND</button>
+                <button class="toolbar-btn" id="btn-vibe" aria-label="Toggle vibration">VIB</button>
+                <button class="toolbar-btn" id="btn-info" aria-label="About">i</button>
+              </div>
+            </section>
+
+            <!-- 2. GAMEPLAY -->
+            <section class="screen" id="screen-game">
+              <div class="game-top">
+                <div class="stat"><span class="label">SCORE</span><span class="value" id="cur-score">0000</span></div>
+                <div class="stat" style="align-items:center;"><span class="label">BEST</span><span class="value" id="cur-best">0000</span></div>
+                <button class="icon-btn" id="btn-pause" aria-label="Pause">❚❚</button>
+              </div>
+              <div class="board-wrap">
+                <div class="board" id="board" data-skin="classic">
+                  <div class="pause-overlay" id="pause-overlay" hidden>
+                    <span>PAUSED</span><small>Tap ▶ to resume</small>
+                  </div>
+                </div>
+              </div>
+              <div class="dpad">
+                <button class="dpad-btn" data-dir="left" aria-label="Left">←</button>
+                <button class="dpad-btn" data-dir="up" aria-label="Up">↑</button>
+                <button class="dpad-btn" data-dir="down" aria-label="Down">↓</button>
+                <button class="dpad-btn" data-dir="right" aria-label="Right">→</button>
+                <button class="dpad-btn" id="btn-restart" aria-label="Restart">⟳</button>
+              </div>
+            </section>
+
+            <!-- 3. GAME OVER -->
+            <section class="screen" id="screen-gameover">
+              <div class="gameover-icon">✕ ✕</div>
+              <h2 class="title">GAME OVER</h2>
+              <div class="go-badge" id="newbest-badge" hidden>NEW BEST!</div>
+              <div class="go-score"><span class="label">SCORE</span><span class="big" id="go-score">0000</span></div>
+              <div class="go-best"><span class="label">BEST SCORE</span><span class="mid" id="go-best">0000</span></div>
+              <div class="go-actions">
+                <button class="menu-item primary" data-action="play">⟳ PLAY AGAIN</button>
+                <button class="menu-item" data-action="modes">▦ MODES</button>
+                <button class="menu-item ghost" data-action="home">⌂ HOME</button>
+              </div>
+            </section>
+
+            <!-- 4. LEADERBOARD -->
+            <section class="screen" id="screen-leaderboard">
+              <h2>LEADERBOARD</h2>
+              <div class="tabs">
+                <button class="tab active" data-lbtab="global">GLOBAL</button>
+                <button class="tab" data-lbtab="friends">FRIENDS</button>
+              </div>
+              <div class="lb-list" id="lb-list"></div>
+              <button class="menu-item" id="btn-refresh">⟳ REFRESH</button>
+              <button class="menu-item ghost" data-action="home">⌂ HOME</button>
+            </section>
+
+            <!-- 5. ACHIEVEMENTS -->
+            <section class="screen" id="screen-achievements">
+              <div class="ach-header">
+                <h2 style="margin:0;">ACHIEVEMENTS</h2>
+                <span id="ach-count">0 / 8</span>
+              </div>
+              <div class="ach-list" id="ach-list"></div>
+              <button class="menu-item ghost" data-action="home">⌂ HOME</button>
+            </section>
+
+            <!-- MODES / SETUP (reached from Modes / Options) -->
+            <section class="screen" id="screen-modes">
+              <h2>GAME SETUP</h2>
+              <div class="modes-tabs">
+                <button class="tab active" data-mtab="modes">MODES</button>
+                <button class="tab" data-mtab="skins">SKINS</button>
+              </div>
+
+              <div class="modes-panel" id="panel-mtab-modes">
+                <div class="setup-group">
+                  <h4>STYLE</h4>
+                  <div class="seg">
+                    <button data-set-mode="classic">CLASSIC</button>
+                    <button data-set-mode="modern">MODERN</button>
+                  </div>
+                </div>
+                <div class="setup-group">
+                  <h4>SPEED</h4>
+                  <div class="seg">
+                    <button data-set-speed="slow">SLOW</button>
+                    <button data-set-speed="normal">NORMAL</button>
+                    <button data-set-speed="fast">FAST</button>
+                  </div>
+                </div>
+                <div class="setup-group">
+                  <div class="switch-row"><span>Infinite Mode</span><button class="switch" data-toggle="infinite"><i></i></button></div>
+                  <div class="switch-row"><span>Obstacles Mode</span><button class="switch" data-toggle="obstacles"><i></i></button></div>
+                  <div class="switch-row"><span>Sound</span><button class="switch" data-toggle="sound"><i></i></button></div>
+                  <div class="switch-row"><span>Vibration</span><button class="switch" data-toggle="vibrate"><i></i></button></div>
+                </div>
+              </div>
+
+              <div class="modes-panel" id="panel-mtab-skins" hidden>
+                <div class="skin-grid">
+                  <div class="skin-card" data-set-skin="classic"><div class="swatch classic"></div><span>Classic Nokia</span></div>
+                  <div class="skin-card" data-set-skin="neon"><div class="swatch neon"></div><span>Neon Green</span></div>
+                  <div class="skin-card" data-set-skin="gold"><div class="swatch gold"></div><span>Gold</span></div>
+                  <div class="skin-card" data-set-skin="retro"><div class="swatch retro"></div><span>Retro Pixel</span></div>
+                </div>
+              </div>
+
+              <div style="margin-top:10px;">
+                <button class="menu-item primary" data-action="play">▶ PLAY</button>
+                <button class="menu-item ghost" data-action="home">⌂ HOME</button>
+              </div>
+            </section>
+
+          </div>
+        </div>
+        <div class="phone-bottom"><span class="brand">SNAKE</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: live Snake Skins panel -->
+    <aside class="panel" id="panel-skins">
+      <h3>SNAKE SKINS</h3>
+      <div class="skin-row" data-set-skin="classic"><div class="swatch classic"></div><span>Classic Nokia</span></div>
+      <div class="skin-row" data-set-skin="neon"><div class="swatch neon"></div><span>Neon Green</span></div>
+      <div class="skin-row" data-set-skin="gold"><div class="swatch gold"></div><span>Gold</span></div>
+      <div class="skin-row" data-set-skin="retro"><div class="swatch retro"></div><span>Retro Pixel</span></div>
+    </aside>
+
+  </main>
+
+  <footer class="foot">
+    <div class="badges">
+      <div class="badge"><div class="dot">⛺</div><span>OFFLINE PLAY</span></div>
+      <div class="badge"><div class="dot">♪</div><span>SOUND TOGGLE</span></div>
+      <div class="badge"><div class="dot">▦</div><span>VIBRATION SUPPORT</span></div>
+      <div class="badge"><div class="dot">⟳</div><span>INSTANT RESTART</span></div>
+      <div class="badge"><div class="dot">☝</div><span>ONE‑THUMB CONTROL</span></div>
+      <div class="badge"><div class="dot">60</div><span>SMOOTH 60 FPS</span></div>
+    </div>
+
+    <div class="mockup-title">6. MOBILE APP MOCKUP</div>
+    <div class="mockup-row">
+      <div>
+        <div class="mini-phone"><div class="mini-screen">
+          <div class="ml">▶ PLAY</div>
+          <div class="mini-figure" id="mf1"></div>
+        </div></div>
+        <div class="mockup-cap">Home</div>
+      </div>
+      <div>
+        <div class="mini-phone"><div class="mini-screen">
+          <div class="ml">0215</div>
+          <div class="mini-figure" id="mf2"></div>
+        </div></div>
+        <div class="mockup-cap">Gameplay</div>
+      </div>
+      <div>
+        <div class="mini-phone"><div class="mini-screen">
+          <div class="ml">GAME OVER</div>
+          <div class="mini-figure" id="mf3"></div>
+        </div></div>
+        <div class="mockup-cap">Game Over</div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- CONFIG ---------------- */
+  const COLS = 13, ROWS = 19;
+  const SPEED_MS = { slow:200, normal:130, fast:80 };
+  const ACHIEVEMENTS = [
+    {id:'first',    name:'First Steps',     desc:'Play your first game',                target:1,   get:s=>Math.min(s.gamesPlayed,1)},
+    {id:'grower',   name:'Snake Grower',    desc:'Reach length 20',                     target:20,  get:s=>Math.min(s.maxLength,20)},
+    {id:'speed',    name:'Speed Runner',    desc:'Play 10 games on Fast speed',         target:10,  get:s=>Math.min(s.fastGames,10)},
+    {id:'infinite', name:'Infinite Player', desc:'Survive 5 min total in Infinite Mode',target:300, get:s=>Math.min(s.infiniteSeconds,300)},
+    {id:'daily',    name:'Daily Champ',     desc:'Complete 7 daily challenges',         target:7,   get:s=>Math.min(s.dailyCompleted,7)},
+    {id:'obstacle', name:'Obstacle Master', desc:'Survive 10 Obstacles Mode games',     target:10,  get:s=>Math.min(s.obstacleGames,10)},
+    {id:'scorer',   name:'High Scorer',     desc:'Score 50 in a single game',           target:50,  get:s=>Math.min(s.bestScore,50)},
+    {id:'marathon', name:'Marathoner',      desc:'Play 50 games total',                 target:50,  get:s=>Math.min(s.gamesPlayed,50)},
+  ];
+  const LB_GLOBAL = [
+    {name:'SNAKE MASTER', score:9999},
+    {name:'PIXEL KING',   score:8765},
+    {name:'GREEN VIPER',  score:6543},
+    {name:'NOKIA LEGEND', score:5432},
+    {name:'SNAKE PRO',    score:4321},
+  ];
+  const LB_FRIENDS = [
+    {name:'ALEX',  score:1840},
+    {name:'JORDAN',score:1205},
+    {name:'SAM',   score:760},
+  ];
+
+  /* ---------------- STATE ---------------- */
+  let stats = {gamesPlayed:0,maxLength:4,fastGames:0,infiniteSeconds:0,dailyCompleted:0,obstacleGames:0,bestScore:0,lastDailyDate:null};
+  let settings = {mode:'classic',speed:'normal',infinite:false,obstacles:false,skin:'classic',sound:true,vibrate:true};
+
+  let snake=[], dir='right', nextDir='right', food=null, obstacles=[];
+  let score=0, paused=false, running=false, loopId=null, isDaily=false, runStart=0;
+  let audioCtx=null;
+
+  const $ = sel => document.documentElement.querySelector(sel);
+  const $$ = sel => Array.from(document.documentElement.querySelectorAll(sel));
+
+  /* ---------------- STORAGE ---------------- */
+  async function loadData(){
+    try{
+      const r = await window.storage.get('snake-stats');
+      if(r) stats = Object.assign(stats, JSON.parse(r.value));
+    }catch(e){}
+    try{
+      const r = await window.storage.get('snake-settings');
+      if(r) settings = Object.assign(settings, JSON.parse(r.value));
+    }catch(e){}
+  }
+  async function saveStats(){ try{ await window.storage.set('snake-stats', JSON.stringify(stats)); }catch(e){} }
+  async function saveSettings(){ try{ await window.storage.set('snake-settings', JSON.stringify(settings)); }catch(e){} }
+
+  /* ---------------- AUDIO / HAPTIC ---------------- */
+  function beep(freq,dur){
+    if(!settings.sound) return;
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type='square'; o.frequency.value=freq; g.gain.value=.045;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime+dur);
+    }catch(e){}
+  }
+  function buzz(pattern){ if(settings.vibrate && navigator.vibrate) try{navigator.vibrate(pattern);}catch(e){} }
+
+  /* ---------------- NAVIGATION ---------------- */
+  function setScreen(id){
+    $$('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('screen-'+id).classList.add('active');
+    if(id!=='game'){ stopLoop(); }
+    if(id==='leaderboard') renderLeaderboard('global');
+    if(id==='achievements') renderAchievements();
+  }
+  function toast(msg){
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t=setTimeout(()=>t.classList.remove('show'),2200);
+  }
+
+  document.addEventListener('click', e=>{
+    const act = e.target.closest('[data-action]');
+    if(act){
+      const a=act.dataset.action;
+      if(a==='play') startGame();
+      else if(a==='home') setScreen('home');
+      else if(a==='modes') setScreen('modes');
+      else if(a==='achievements') setScreen('achievements');
+      else if(a==='leaderboard') setScreen('leaderboard');
+      else if(a==='daily') startDaily();
+      return;
+    }
+    const modeBtn = e.target.closest('[data-set-mode]');
+    if(modeBtn){ settings.mode=modeBtn.dataset.setMode; syncControls(); saveSettings(); return; }
+
+    const speedBtn = e.target.closest('[data-set-speed]');
+    if(speedBtn){ settings.speed=speedBtn.dataset.setSpeed; syncControls(); saveSettings(); return; }
+
+    const tgl = e.target.closest('[data-toggle]');
+    if(tgl){
+      const key=tgl.dataset.toggle;
+      settings[key] = !settings[key];
+      syncControls(); saveSettings();
+      if(key==='sound') toast(settings.sound?'SOUND ON':'SOUND OFF');
+      if(key==='vibrate') toast(settings.vibrate?'VIBRATION ON':'VIBRATION OFF');
+      return;
+    }
+    const skinBtn = e.target.closest('[data-set-skin]');
+    if(skinBtn){ settings.skin=skinBtn.dataset.setSkin; syncControls(); saveSettings(); return; }
+
+    const lbTab = e.target.closest('[data-lbtab]');
+    if(lbTab){
+      $$('#screen-leaderboard .tab').forEach(t=>t.classList.remove('active'));
+      lbTab.classList.add('active');
+      renderLeaderboard(lbTab.dataset.lbtab);
+      return;
+    }
+    const mTab = e.target.closest('[data-mtab]');
+    if(mTab){
+      $$('#screen-modes .tab').forEach(t=>t.classList.remove('active'));
+      mTab.classList.add('active');
+      document.getElementById('panel-mtab-modes').hidden = mTab.dataset.mtab!=='modes';
+      document.getElementById('panel-mtab-skins').hidden = mTab.dataset.mtab!=='skins';
+      return;
+    }
+    if(e.target.id==='btn-sound'){ settings.sound=!settings.sound; syncControls(); saveSettings(); toast(settings.sound?'SOUND ON':'SOUND OFF'); return; }
+    if(e.target.id==='btn-vibe'){ settings.vibrate=!settings.vibrate; syncControls(); saveSettings(); toast(settings.vibrate?'VIBRATION ON':'VIBRATION OFF'); return; }
+    if(e.target.id==='btn-info'){ toast('SNAKE 2026 · A Nokia classic, reimagined'); return; }
+    if(e.target.id==='btn-pause'){ togglePause(); return; }
+    if(e.target.id==='btn-restart'){ startGame(); return; }
+    if(e.target.closest('.board')){ togglePause(); return; }
+    if(e.target.id==='btn-refresh'){ renderLeaderboard(currentLbTab()); toast('UPDATED'); return; }
+
+    const dpad = e.target.closest('[data-dir]');
+    if(dpad){ setDir(dpad.dataset.dir); return; }
+  });
+
+  function currentLbTab(){ const a=document.querySelector('#screen-leaderboard .tab.active'); return a?a.dataset.lbtab:'global'; }
+
+  function syncControls(){
+    document.getElementById('lcd').dataset.skin = settings.skin;
+    const board = document.getElementById('board'); if(board) board.dataset.skin = settings.skin;
+
+    $$('[data-set-mode]').forEach(b=>b.classList.toggle('active', b.dataset.setMode===settings.mode));
+    $$('[data-set-mode].dot').forEach(b=>b.classList.toggle('is-active', b.dataset.setMode===settings.mode));
+    $$('[data-set-speed]').forEach(b=>b.classList.toggle('active', b.dataset.setSpeed===settings.speed));
+
+    $$('[data-toggle].switch').forEach(b=>b.classList.toggle('on', !!settings[b.dataset.toggle]));
+    $$('[data-toggle].dot').forEach(b=>b.classList.toggle('is-active', !!settings[b.dataset.toggle]));
+
+    $$('[data-set-skin]').forEach(el=>el.classList.toggle('is-active', el.dataset.setSkin===settings.skin));
+    document.getElementById('btn-sound').classList.toggle('is-on', settings.sound);
+    document.getElementById('btn-vibe').classList.toggle('is-on', settings.vibrate);
+
+    const today = new Date().toDateString();
+    document.getElementById('daily-dot').style.background = (stats.lastDailyDate===today) ? 'var(--lcd-dark)' : 'var(--lcd-light)';
+    document.getElementById('cur-best').textContent = pad(stats.bestScore);
+  }
+
+  /* ---------------- GAME ENGINE ---------------- */
+  function startDaily(){ isDaily=true; settings.obstacles=true; settings.speed='normal'; syncControls(); startGame(); }
+
+  function seededRand(seed){ let s=seed; return ()=>{ s = (s*1664525+1013904223)>>>0; return s/4294967296; }; }
+
+  function startGame(){
+    snake = [{x:6,y:9},{x:5,y:9},{x:4,y:9},{x:3,y:9}];
+    dir = nextDir = 'right';
+    score = 0; paused=false; running=true; runStart=Date.now();
+    obstacles = [];
+    if(settings.obstacles){
+      const rand = isDaily ? seededRand(hashDate()) : Math.random;
+      let tries=0;
+      while(obstacles.length < 6 && tries < 200){
+        tries++;
+        const x = Math.floor(rand()*COLS), y = Math.floor(rand()*ROWS);
+        if(Math.abs(x-6)<3 && Math.abs(y-9)<2) continue;
+        if(obstacles.some(o=>o.x===x&&o.y===y)) continue;
+        obstacles.push({x,y});
+      }
+    }
+    spawnFood();
+    document.getElementById('cur-score').textContent = pad(0);
+    document.getElementById('cur-best').textContent = pad(stats.bestScore);
+    document.getElementById('pause-overlay').hidden = true;
+    document.getElementById('btn-pause').textContent = '❚❚';
+    document.getElementById('board').dataset.skin = settings.skin;
+    setScreen('game');
+    renderBoard();
+    stopLoop();
+    loopId = setInterval(tick, SPEED_MS[settings.speed]);
+  }
+  function hashDate(){
+    const d=new Date().toDateString(); let h=0;
+    for(let i=0;i<d.length;i++) h=(h*31 + d.charCodeAt(i))>>>0;
+    return h;
+  }
+  function stopLoop(){ if(loopId){ clearInterval(loopId); loopId=null; } running=false; }
+
+  function togglePause(){
+    if(!document.getElementById('screen-game').classList.contains('active')) return;
+    paused = !paused;
+    document.getElementById('pause-overlay').hidden = !paused;
+    document.getElementById('btn-pause').textContent = paused ? '▶' : '❚❚';
+  }
+
+  function setDir(d){
+    const opp = {left:'right',right:'left',up:'down',down:'up'};
+    if(snake.length>1 && opp[d]===dir) return;
+    nextDir = d;
+  }
+  document.addEventListener('keydown', e=>{
+    if(!document.getElementById('screen-game').classList.contains('active')) return;
+    const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',a:'left',d:'right',w:'up',s:'down'};
+    if(map[e.key]){ setDir(map[e.key]); e.preventDefault(); }
+    else if(e.key===' '){ togglePause(); e.preventDefault(); }
+    else if(e.key==='r'||e.key==='R'){ startGame(); }
+  });
+  (function swipe(){
+    let sx=0, sy=0;
+    document.addEventListener('touchstart', e=>{
+      if(!e.target.closest('.board')) return;
+      sx=e.touches[0].clientX; sy=e.touches[0].clientY;
+    }, {passive:true});
+    document.addEventListener('touchend', e=>{
+      if(!e.target.closest('.board') && !e.changedTouches) return;
+      const t=e.changedTouches[0]; if(!t) return;
+      const dx=t.clientX-sx, dy=t.clientY-sy;
+      if(Math.abs(dx)<18 && Math.abs(dy)<18) return;
+      if(Math.abs(dx)>Math.abs(dy)) setDir(dx>0?'right':'left');
+      else setDir(dy>0?'down':'up');
+    }, {passive:true});
+  })();
+
+  function spawnFood(){
+    let x,y,ok=false;
+    while(!ok){
+      x=Math.floor(Math.random()*COLS); y=Math.floor(Math.random()*ROWS);
+      ok = !snake.some(s=>s.x===x&&s.y===y) && !obstacles.some(o=>o.x===x&&o.y===y);
+    }
+    food={x,y};
+  }
+
+  function tick(){
+    if(paused) return;
+    dir = nextDir;
+    const d = {left:{x:-1,y:0},right:{x:1,y:0},up:{x:0,y:-1},down:{x:0,y:1}}[dir];
+    let head = {x:snake[0].x+d.x, y:snake[0].y+d.y};
+
+    if(settings.infinite){
+      head.x=(head.x+COLS)%COLS; head.y=(head.y+ROWS)%ROWS;
+    } else if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS){
+      return endGame();
+    }
+    const eating = food && head.x===food.x && head.y===food.y;
+    const body = eating ? snake : snake.slice(0,-1);
+    if(body.some(s=>s.x===head.x&&s.y===head.y)) return endGame();
+    if(settings.obstacles && obstacles.some(o=>o.x===head.x&&o.y===head.y)) return endGame();
+
+    snake.unshift(head);
+    if(eating){
+      score++;
+      document.getElementById('cur-score').textContent = pad(score);
+      beep(660,.06); buzz(15);
+      spawnFood();
+    } else {
+      snake.pop();
+    }
+    renderBoard();
+  }
+
+  function endGame(){
+    stopLoop();
+    beep(160,.25); buzz([40,40,40]);
+
+    const elapsed = Math.floor((Date.now()-runStart)/1000);
+    stats.gamesPlayed++;
+    stats.maxLength = Math.max(stats.maxLength, snake.length);
+    if(settings.speed==='fast') stats.fastGames++;
+    if(settings.infinite) stats.infiniteSeconds += elapsed;
+    if(settings.obstacles) stats.obstacleGames++;
+    const today = new Date().toDateString();
+    if(isDaily && score>0 && stats.lastDailyDate!==today){ stats.lastDailyDate=today; stats.dailyCompleted++; }
+    isDaily=false;
+
+    const before = ACHIEVEMENTS.filter(a=>a.get(stats)>=a.target).map(a=>a.id);
+    const isNewBest = score>0 && score>stats.bestScore;
+    stats.bestScore = Math.max(stats.bestScore, score);
+    const after = ACHIEVEMENTS.filter(a=>a.get(stats)>=a.target).map(a=>a.id);
+    const justUnlocked = after.filter(id=>!before.includes(id));
+
+    saveStats();
+    document.getElementById('go-score').textContent = pad(score);
+    document.getElementById('go-best').textContent = pad(stats.bestScore);
+    document.getElementById('newbest-badge').hidden = !isNewBest;
+    setScreen('gameover');
+
+    if(justUnlocked.length){
+      const a = ACHIEVEMENTS.find(x=>x.id===justUnlocked[0]);
+      setTimeout(()=>toast('ACHIEVEMENT: '+a.name.toUpperCase()), 500);
+    }
+  }
+
+  function pad(n){ return String(n).padStart(4,'0'); }
+
+  function renderBoard(){
+    const board = document.getElementById('board');
+    board.querySelectorAll('.cell').forEach(c=>c.remove());
+    const cw = 100/COLS, ch = 100/ROWS;
+    const place = (x,y,cls)=>{
+      const el=document.createElement('div');
+      el.className='cell '+cls;
+      el.style.left=(x*cw)+'%'; el.style.top=(y*ch)+'%';
+      el.style.width=cw+'%'; el.style.height=ch+'%';
+      board.appendChild(el);
+      return el;
+    };
+    obstacles.forEach(o=>place(o.x,o.y,'obstacle'));
+    if(food) place(food.x,food.y,'food pulse');
+    snake.forEach((s,i)=>place(s.x,s.y,'snake-seg'+(i===0?' head':'')));
+  }
+
+  /* ---------------- LEADERBOARD ---------------- */
+  function renderLeaderboard(tab){
+    const list = (tab==='friends'?LB_FRIENDS:LB_GLOBAL).slice().sort((a,b)=>b.score-a.score);
+    const wrap = document.getElementById('lb-list');
+    wrap.innerHTML='';
+    list.forEach((row,i)=>{
+      const div=document.createElement('div');
+      div.className='lb-row';
+      div.innerHTML = `<span class="rank">${i+1}</span><span class="name">${row.name}</span><span class="score">${pad(row.score)}</span>`;
+      wrap.appendChild(div);
+    });
+    const rank = list.filter(r=>r.score>stats.bestScore).length + 1;
+    const me=document.createElement('div');
+    me.className='lb-row me';
+    me.innerHTML = `<span class="rank">${rank}</span><span class="name">YOU</span><span class="score">${pad(stats.bestScore)}</span>`;
+    wrap.appendChild(me);
+  }
+
+  /* ---------------- ACHIEVEMENTS ---------------- */
+  function renderAchievements(){
+    const wrap = document.getElementById('ach-list');
+    wrap.innerHTML='';
+    let unlockedCount=0;
+    ACHIEVEMENTS.forEach(a=>{
+      const cur = a.get(stats);
+      const unlocked = cur>=a.target;
+      if(unlocked) unlockedCount++;
+      const row=document.createElement('div');
+      row.className='ach-row'+(unlocked?' unlocked':'');
+      row.innerHTML = `
+        <div class="ach-top">
+          <div class="ach-name"><span class="ach-icon"></span>${a.name}</div>
+          <span class="ach-progress-text">${unlocked?'✓':cur+'/'+a.target}</span>
+        </div>
+        <div class="ach-desc">${a.desc}</div>
+        <div class="ach-bar"><i style="width:${Math.min(100,(cur/a.target)*100)}%"></i></div>`;
+      wrap.appendChild(row);
+    });
+    document.getElementById('ach-count').textContent = unlockedCount+' / '+ACHIEVEMENTS.length;
+  }
+
+  /* ---------------- DECORATIVE LOGO / MOCKUP ---------------- */
+  function buildMiniGrid(el, cols, rows, onCells){
+    el.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+    el.style.gridTemplateRows = `repeat(${rows},1fr)`;
+    el.innerHTML='';
+    for(let i=0;i<cols*rows;i++){
+      const s=document.createElement('span');
+      if(onCells.includes(i)) s.className='on';
+      el.appendChild(s);
+    }
+  }
+  function init(){
+    buildMiniGrid(document.getElementById('mini-snake-home'),7,4,[0,1,8,9,16,17,18,25,26]);
+    buildMiniGrid(document.getElementById('mf1'),6,4,[0,1,7,8,14,15,20,21]);
+    buildMiniGrid(document.getElementById('mf2'),6,4,[2,3,9,16,17,22,23]);
+    buildMiniGrid(document.getElementById('mf3'),6,4,[1,4,8,11,13,14,16,17]);
+  }
+
+  /* ---------------- BOOT ---------------- */
+  loadData().then(()=>{
+    init();
+    syncControls();
+    renderLeaderboard('global');
+    renderAchievements();
+  });
+
+})();
+</script>
+</body>
+</html>
